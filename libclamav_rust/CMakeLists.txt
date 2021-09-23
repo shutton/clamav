@@ -10,3 +10,7 @@ if (WIN32)
     target_link_libraries(clamav_rust PUBLIC INTERFACE Userenv)
 endif()
 add_library(ClamAV::libclamav_rust ALIAS clamav_rust)
+
+# rdiff Rust replacement for cdiff
+add_rust_library(TARGET cdiff WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cdiff")
+add_library(ClamAV::cdiff ALIAS cdiff)

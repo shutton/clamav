@@ -992,6 +992,7 @@ add_subdirectory( libclamav )
 
 if(NOT ENABLE_LIBCLAMAV_ONLY)
     add_subdirectory( common )
+    add_subdirectory( libclamav_rust )
 
     add_subdirectory( libfreshclam )
 

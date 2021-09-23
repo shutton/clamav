@@ -37,6 +37,8 @@ if(ENABLE_SHARED_LIB)
         PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR} )
 
     target_link_libraries( freshclam
+        PRIVATE
+            ClamAV::cdiff
         PUBLIC
             ClamAV::common
             CURL::libcurl
@@ -114,6 +116,8 @@ if(ENABLE_STATIC_LIB)
         PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR} )
 
     target_link_libraries( freshclam_static
+        PRIVATE
+            ClamAV::cdiff
         PUBLIC
             ClamAV::common
             CURL::libcurl
