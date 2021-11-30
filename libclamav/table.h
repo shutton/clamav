@@ -22,17 +22,7 @@
 /*
  * Hashtable mapping strings to numbers
  */
-typedef struct tableEntry {
-    char *key;
-    struct tableEntry *next;
-    int value;
-} tableEntry;
-
-typedef struct table {
-    tableEntry *tableHead;
-    tableEntry *tableLast;
-    unsigned int flags;
-} table_t;
+typedef struct table table_t;
 
 #define TABLE_HAS_DELETED_ENTRIES 0x1
 

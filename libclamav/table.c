@@ -38,6 +38,18 @@
 #include "table.h"
 #include "others.h"
 
+typedef struct tableEntry {
+    char *key;
+    struct tableEntry *next;
+    int value;
+} tableEntry;
+
+struct table {
+    tableEntry *tableHead;
+    tableEntry *tableLast;
+    unsigned int flags;
+};
+
 struct table *
 tableCreate(void)
 {
