@@ -81,17 +81,17 @@ static inline size_t msxml_read_cb_new_window(struct msxml_cbdata *cbdata)
     off_t new_mappos;
     size_t bytes;
 
-    if ((size_t)cbdata->mappos == cbdata->map->len) {
+    if ((size_t)cbdata->mappos == fmap_len(cbdata->map)) {
         cli_msxmlmsg("msxml_read_cb: fmap REALLY EOF\n");
         return 0;
     }
 
     new_mappos = cbdata->mappos + cbdata->winsize;
-    bytes      = MIN(cbdata->map->len - new_mappos, MSXML_READBUFF);
+    bytes      = MIN(fmap_len(cbdata->map) - new_mappos, MSXML_READBUFF);
     if (!bytes) {
         cbdata->window  = NULL;
         cbdata->winpos  = 0;
-        cbdata->mappos  = cbdata->map->len;
+        cbdata->mappos  = fmap_len(cbdata->map);
         cbdata->winsize = 0;
 
         cli_msxmlmsg("msxml_read_cb: fmap EOF\n");

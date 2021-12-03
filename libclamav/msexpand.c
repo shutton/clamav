@@ -75,7 +75,7 @@ struct msexp_hdr {
 #define RW_SIZE 2048
 
 #define READBYTES                                     \
-    rbytes = MIN(RW_SIZE, map->len - cur_off);        \
+    rbytes = MIN(RW_SIZE, fmap_len(map) - cur_off);   \
     if (!rbytes)                                      \
         break;                                        \
     rbuff = fmap_need_off_once(map, cur_off, rbytes); \

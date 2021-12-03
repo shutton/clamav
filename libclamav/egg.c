@@ -368,7 +368,7 @@ typedef struct {
 } egg_handle;
 
 #define EGG_VALIDATE_HANDLE(h) \
-    ((!handle || !handle->map || (handle->offset > handle->map->len)) ? CL_EARG : CL_SUCCESS)
+    ((!handle || !handle->map || (handle->offset > fmap_len(handle->map))) ? CL_EARG : CL_SUCCESS)
 
 const char* getEncryptName(uint8_t method)
 {
@@ -1411,7 +1411,7 @@ static cl_error_t egg_parse_file_headers(egg_handle* handle, egg_file** file)
      *      f) EOFARC
      */
 
-    while (handle->map->len > handle->offset) {
+    while (fmap_len(handle->map) > handle->offset) {
 
         /* Get the next magic32_t */
         index = (const uint8_t*)fmap_need_off_once(handle->map, handle->offset, sizeof(magic32_t));
@@ -1553,7 +1553,7 @@ static cl_error_t egg_parse_archive_headers(egg_handle* handle)
      *      d) EOFARC
      */
 
-    while (handle->map->len > handle->offset) {
+    while (fmap_len(handle->map) > handle->offset) {
 
         /* Get the next magic32_t */
         index = (const uint8_t*)fmap_need_off_once(handle->map, handle->offset, sizeof(magic32_t));
@@ -1645,9 +1645,9 @@ cl_error_t cli_egg_open(fmap_t* map, void** hArchive, char*** comments, uint32_t
              */
             handle->offset += sizeof(magic32_t);
 
-            if (handle->map->len > handle->offset) {
+            if (fmap_len(handle->map) > handle->offset) {
                 cli_warnmsg("Apparent end to EGG archive, but an addition %zu bytes of data exists in the file!\n",
-                            handle->map->len - handle->offset);
+                            fmap_len(handle->map) - handle->offset);
             } else {
                 cli_dbgmsg("cli_egg_open: Successfully indexed EGG archive!\n");
             }

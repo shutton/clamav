@@ -916,7 +916,7 @@ int cli_ole2_summary_json(cli_ctx *ctx, int fd, int mode)
         cli_dbgmsg("ole2_summary_json: failed to get fmap\n");
         return CL_EMAP;
     }
-    sctx.maplen = sctx.sfmap->len;
+    sctx.maplen = fmap_len(sctx.sfmap);
     cli_dbgmsg("ole2_summary_json: streamsize: %zu\n", sctx.maplen);
 
     switch (mode) {

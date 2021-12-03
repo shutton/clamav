@@ -138,7 +138,7 @@ static int hfsplus_volumeheader(cli_ctx *ctx, hfsPlusVolumeHeader **header)
     }
 
     /* Start with volume header, 512 bytes at offset 1024 */
-    if (ctx->fmap->len < 1536) {
+    if (fmap_len(ctx->fmap) < 1536) {
         cli_dbgmsg("hfsplus_volumeheader: too short for HFS+\n");
         return CL_EFORMAT;
     }

@@ -69,7 +69,7 @@ int cli_tnef(const char *dir, cli_ctx *ctx)
     int ret, alldone;
     off_t fsize, pos = 0;
 
-    fsize = ctx->fmap->len;
+    fsize = fmap_len(ctx->fmap);
 
     if (fsize < (off_t)MIN_SIZE) {
         cli_dbgmsg("cli_tngs: file too small, ignoring\n");

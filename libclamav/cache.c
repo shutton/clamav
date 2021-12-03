@@ -873,7 +873,7 @@ void cache_add(unsigned char *md5, size_t size, cli_ctx *ctx)
         return;
     }
 
-    level = (ctx->fmap && ctx->fmap->dont_cache_flag) ? ctx->recursion_level : 0;
+    level = (ctx->fmap && fmap_dont_cache_flag(ctx->fmap)) ? ctx->recursion_level : 0;
     if (ctx->found_possibly_unwanted && (level || 0 == ctx->recursion_level))
         return;
     if (SCAN_ALLMATCHES && (ctx->num_viruses > 0)) {
@@ -965,7 +965,7 @@ cl_error_t cache_check(unsigned char *hash, cli_ctx *ctx)
     }
 
     map = ctx->fmap;
-    ret = cache_lookup_hash(hash, map->len, ctx->engine->cache, ctx->recursion_level);
+    ret = cache_lookup_hash(hash, fmap_len(map), ctx->engine->cache, ctx->recursion_level);
     cli_dbgmsg("cache_check: %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x is %s\n", hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7], hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15], (ret == CL_VIRUS) ? "negative" : "positive");
     return ret;
 }

@@ -53,7 +53,7 @@ int cli_binhex(cli_ctx *ctx)
     fmap_t *map            = ctx->fmap;
     const uint8_t *encoded = NULL;
     uint8_t decoded[BUFSIZ], spare_bits = 0, last_byte = 0, this_byte = 0, offset = 0;
-    size_t enc_done = 0, enc_todo = map->len;
+    size_t enc_done = 0, enc_todo = fmap_len(map);
     unsigned int dec_done = 0, chunksz = 0, chunkoff = 0;
     uint32_t datalen = 0, reslen = 0;
     int in_data = 0, in_run = 0, datafd, resfd, ret = CL_CLEAN;
@@ -66,7 +66,7 @@ int cli_binhex(cli_ctx *ctx)
     char *dname, *rname;
 
     cli_dbgmsg("in cli_binhex\n");
-    if (!map->len) return CL_CLEAN;
+    if (!fmap_len(map)) return CL_CLEAN;
 
     if ((ret = cli_gentempfd(ctx->sub_tmpdir, &dname, &datafd)) != CL_SUCCESS)
         return ret;
@@ -197,7 +197,7 @@ int cli_binhex(cli_ctx *ctx)
         // 'chunksz' must be 0 the first iteration,
         // so that 'encoded' will be initialized before first dereference.
         if (!chunksz) {
-            chunksz = MIN(enc_todo, map->pgsz);
+            chunksz = MIN(enc_todo, fmap_pgsz(map));
             encoded = fmap_need_off_once(map, enc_done, chunksz);
             if (!encoded) {
                 ret = CL_EREAD;

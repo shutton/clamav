@@ -134,8 +134,8 @@ size_t text_normalize_map(struct text_norm_state *state, fmap_t *map, size_t off
     size_t acc_total;
     size_t acc_len;
 
-    map_len  = map->len;
-    map_pgsz = map->pgsz;
+    map_len  = fmap_len(map);
+    map_pgsz = fmap_pgsz(map);
     buff_len = state->out_len;
 
     acc_total = 0;

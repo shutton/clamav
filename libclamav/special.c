@@ -51,7 +51,7 @@ int cli_check_mydoom_log(cli_ctx *ctx)
     const uint32_t *record;
     uint32_t check, key;
     fmap_t *map         = ctx->fmap;
-    unsigned int blocks = map->len / (8 * 4);
+    unsigned int blocks = fmap_len(map) / (8 * 4);
 
     cli_dbgmsg("in cli_check_mydoom_log()\n");
     if (blocks < 2)

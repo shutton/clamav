@@ -125,7 +125,7 @@ int cli_scangpt(cli_ctx *ctx, size_t sectorsize)
     }
 
     /* size of total file must be a multiple of the sector size */
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
     if ((maplen % sectorsize) != 0) {
         cli_dbgmsg("cli_scangpt: File sized %lu is not a multiple of sector size %lu\n",
                    (unsigned long)maplen, (unsigned long)sectorsize);
@@ -289,7 +289,7 @@ static int gpt_scan_partitions(cli_ctx *ctx, struct gpt_header hdr, size_t secto
     cli_dbgmsg("Partition Entry Count: %u\n", hdr.tableNumEntries);
     cli_dbgmsg("Partition Entry Size: %u\n", hdr.tableEntrySize);
 
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
 
     /* check engine maxpartitions limit */
     if (hdr.tableNumEntries < ctx->engine->maxpartitions) {
@@ -374,7 +374,7 @@ static int gpt_validate_header(cli_ctx *ctx, struct gpt_header hdr, size_t secto
     size_t maplen, ptable_start, ptable_len;
     unsigned char *ptable;
 
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
 
     /* checking header crc32 checksum */
     crc32_ref       = le32_to_host(hdr.headerCRC32);
@@ -540,7 +540,7 @@ static void gpt_printSectors(cli_ctx *ctx, size_t sectorsize)
     /* sector size calculation */
     sectorsize = GPT_DEFAULT_SECTOR_SIZE;
 
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
 
     ppos = 1 * sectorsize;      /* sector 1 (second sector) is the primary gpt header */
     spos = maplen - sectorsize; /* last sector is the secondary gpt header */
@@ -591,7 +591,7 @@ static int gpt_partition_intersection(cli_ctx *ctx, struct gpt_header hdr, size_
     uint32_t max_prtns = 0;
     int virus_found    = 0;
 
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
 
     /* convert endian to host to check partition table */
     hdr.tableStartLBA   = le64_to_host(hdr.tableStartLBA);

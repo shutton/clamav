@@ -378,7 +378,7 @@ void findres(uint32_t by_type, uint32_t by_name, fmap_t *map, struct cli_exe_inf
 
     res_rva = EC32(peinfo->dirs[2].VirtualAddress);
 
-    if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva, peinfo->sections, peinfo->nsections, &err, map->len, peinfo->hdr_size), 16)) || err)
+    if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva, peinfo->sections, peinfo->nsections, &err, fmap_len(map), peinfo->hdr_size), 16)) || err)
         return;
 
     type_cnt   = (uint16_t)cli_readint16(resdir + 12);
@@ -395,7 +395,7 @@ void findres(uint32_t by_type, uint32_t by_name, fmap_t *map, struct cli_exe_inf
         type_offs = cli_readint32(type_entry + 4);
         if (type == by_type && (type_offs >> 31)) {
             type_offs &= 0x7fffffff;
-            if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva + type_offs, peinfo->sections, peinfo->nsections, &err, map->len, peinfo->hdr_size), 16)) || err)
+            if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva + type_offs, peinfo->sections, peinfo->nsections, &err, fmap_len(map), peinfo->hdr_size), 16)) || err)
                 return;
 
             name_cnt   = (uint16_t)cli_readint16(resdir + 12);
@@ -413,7 +413,7 @@ void findres(uint32_t by_type, uint32_t by_name, fmap_t *map, struct cli_exe_inf
                 name_offs = cli_readint32(name_entry + 4);
                 if ((by_name == 0xffffffff || name == by_name) && (name_offs >> 31)) {
                     name_offs &= 0x7fffffff;
-                    if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva + name_offs, peinfo->sections, peinfo->nsections, &err, map->len, peinfo->hdr_size), 16)) || err)
+                    if (!(resdir = fmap_need_off_once(map, cli_rawaddr(res_rva + name_offs, peinfo->sections, peinfo->nsections, &err, fmap_len(map), peinfo->hdr_size), 16)) || err)
                         return;
 
                     lang_cnt   = (uint16_t)cli_readint16(resdir + 12) + (uint16_t)cli_readint16(resdir + 14);
@@ -2248,7 +2248,7 @@ static inline int hash_impfns(cli_ctx *ctx, void **hashctx, uint32_t *impsz, str
 {
     uint32_t thuoff = 0, offset;
     fmap_t *map     = ctx->fmap;
-    size_t dlllen = 0, fsize = map->len;
+    size_t dlllen = 0, fsize = fmap_len(map);
     unsigned int err = 0;
     int num_fns = 0, ret = CL_SUCCESS;
     const char *buffer;
@@ -2413,7 +2413,7 @@ static cl_error_t hash_imptbl(cli_ctx *ctx, unsigned char **digest, uint32_t *im
 {
     struct pe_image_import_descriptor *image;
     fmap_t *map = ctx->fmap;
-    size_t left, fsize = map->len;
+    size_t left, fsize = fmap_len(map);
     uint32_t impoff, offset;
     const char *impdes, *buffer;
     void *hashctx[CLI_HASH_AVAIL_TYPES];
@@ -2778,7 +2778,7 @@ int cli_scanpe(cli_ctx *ctx)
     }
 #endif
     map   = ctx->fmap;
-    fsize = map->len;
+    fsize = fmap_len(map);
 
     struct cli_exe_info _peinfo;
     struct cli_exe_info *peinfo = &_peinfo;
@@ -4558,7 +4558,7 @@ int cli_peheader(fmap_t *map, struct cli_exe_info *peinfo, uint32_t opts, cli_ct
     }
 #endif
 
-    fsize = map->len - peinfo->offset;
+    fsize = fmap_len(map) - peinfo->offset;
     if (fmap_readn(map, &e_magic, peinfo->offset, sizeof(e_magic)) != sizeof(e_magic)) {
         cli_dbgmsg("cli_peheader: Can't read DOS signature\n");
         goto done;
@@ -5124,7 +5124,7 @@ int cli_peheader(fmap_t *map, struct cli_exe_info *peinfo, uint32_t opts, cli_ct
         }
     }
 
-    fsize = (map->len - peinfo->offset);
+    fsize = (fmap_len(map) - peinfo->offset);
 
     // TODO Why do we fix up these alignments?  This shouldn't be needed?
     for (i = 0, section_pe_idx = 0; i < peinfo->nsections; i++, section_pe_idx++) {
@@ -5592,7 +5592,7 @@ cl_error_t cli_check_auth_header(cli_ctx *ctx, struct cli_exe_info *peinfo)
         ret = CL_BREAK;
         goto finish;
     }
-    fsize = map->len;
+    fsize = fmap_len(map);
 
     // We'll build a list of the regions that need to be hashed and pass it to
     // asn1_check_mscat to do hash verification there (the hash algorithm is

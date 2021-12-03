@@ -346,7 +346,7 @@ cl_error_t cli_parsejpeg(cli_ctx *ctx)
     while (1) {
         segment++;
         prev_marker = JPEG_MARKER_NOT_A_MARKER_0x00;
-        for (i = 0; offset < map->len && i < 16; i++) {
+        for (i = 0; offset < fmap_len(map) && i < 16; i++) {
             uint8_t marker_u8;
             if (fmap_readn(map, &marker_u8, offset, sizeof(marker_u8)) == sizeof(marker_u8)) {
                 offset += sizeof(marker_u8);
@@ -417,7 +417,7 @@ cl_error_t cli_parsejpeg(cli_ctx *ctx)
             }
             goto done;
         }
-        if (len >= map->len - offset + sizeof(len_u16)) {
+        if (len >= fmap_len(map) - offset + sizeof(len_u16)) {
             if (SCAN_HEURISTIC_BROKEN_MEDIA) {
                 cli_warnmsg("JPEG: Segment data out of file\n");
                 cli_append_possibly_unwanted(ctx, "Heuristics.Broken.Media.JPEG.SegmentDataOutOfFile");

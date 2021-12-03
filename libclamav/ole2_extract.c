@@ -1808,11 +1808,11 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
                sizeof(bool) -           // has_image
                sizeof(hwp5_header_t *); // is_hwp
 
-    if ((size_t)(ctx->fmap->len) < (size_t)(hdr_size)) {
+    if ((size_t)(fmap_len(ctx->fmap)) < (size_t)(hdr_size)) {
         return CL_CLEAN;
     }
     hdr.map      = ctx->fmap;
-    hdr.m_length = hdr.map->len;
+    hdr.m_length = fmap_len(hdr.map);
     phdr         = fmap_need_off_once(hdr.map, 0, hdr_size);
     if (phdr) {
         memcpy(&hdr, phdr, hdr_size);
@@ -1858,13 +1858,13 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         cli_dbgmsg("WARNING: Untested sbat cutoff (%u); data may not extract correctly\n", hdr.sbat_cutoff);
     }
 
-    if (hdr.map->len > INT32_MAX) {
+    if (fmap_len(hdr.map) > INT32_MAX) {
         cli_dbgmsg("OLE2 extract: Overflow detected\n");
         ret = CL_EFORMAT;
         goto done;
     }
     /* 8 SBAT blocks per file block */
-    hdr.max_block_no = (hdr.map->len - MAX(512, 1 << hdr.log2_big_block_size)) / (1 << hdr.log2_small_block_size);
+    hdr.max_block_no = (fmap_len(hdr.map) - MAX(512, 1 << hdr.log2_big_block_size)) / (1 << hdr.log2_small_block_size);
 
     print_ole2_header(&hdr);
     cli_dbgmsg("Max block number: %lu\n", (unsigned long int)hdr.max_block_no);

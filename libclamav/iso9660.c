@@ -45,7 +45,7 @@ static const void *needblock(const iso9660_t *iso, unsigned int block, int temp)
     cli_ctx *ctx = iso->ctx;
     size_t loff;
     unsigned int blocks_per_sect = (2048 / iso->blocksz);
-    if (block > ((ctx->fmap->len - iso->base_offset) / iso->sectsz) * blocks_per_sect)
+    if (block > ((fmap_len(ctx->fmap) - iso->base_offset) / iso->sectsz) * blocks_per_sect)
         return NULL;                                  /* Block is out of file */
     loff = (block / blocks_per_sect) * iso->sectsz;   /* logical sector */
     loff += (block % blocks_per_sect) * iso->blocksz; /* logical block within the sector */

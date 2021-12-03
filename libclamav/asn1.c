@@ -2178,7 +2178,7 @@ int asn1_load_mscat(fmap_t *map, struct cl_engine *engine)
     // TODO Since we pass engine->cmgr directly here, the whole chain of trust
     // for this .cat file will get added to the global trust store assuming it
     // verifies successfully.  Is this a bug for a feature?
-    if (CL_CLEAN != asn1_parse_mscat(engine, map, 0, map->len, &engine->cmgr, 0, &c.next, &size, NULL))
+    if (CL_CLEAN != asn1_parse_mscat(engine, map, 0, fmap_len(map), &engine->cmgr, 0, &c.next, &size, NULL))
         return 1;
 
     if (asn1_expect_objtype(map, c.next, &size, &c, ASN1_TYPE_SEQUENCE))

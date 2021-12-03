@@ -184,13 +184,13 @@ uint32_t cli_bcapi_disasm_x86(struct cli_bc_ctx *ctx, struct DISASM_RESULT *res,
     const unsigned char *buf;
     const unsigned char *next;
     UNUSEDPARAM(len);
-    if (!res || !ctx->fmap || (size_t)(ctx->off) >= ctx->fmap->len) {
+    if (!res || !ctx->fmap || (size_t)(ctx->off) >= fmap_len(ctx->fmap)) {
         API_MISUSE();
         return -1;
     }
     /* 32 should be longest instr we support decoding.
      * When we'll support mmx/sse instructions this should be updated! */
-    n   = MIN(32, ctx->fmap->len - ctx->off);
+    n   = MIN(32, fmap_len(ctx->fmap) - ctx->off);
     buf = fmap_need_off_once(ctx->fmap, ctx->off, n);
     if (buf)
         next = cli_disasm_one(buf, n, res, 0);
@@ -400,7 +400,7 @@ int32_t cli_bcapi_file_find(struct cli_bc_ctx *ctx, const uint8_t *data, uint32_
         API_MISUSE();
         return -1;
     }
-    return cli_bcapi_file_find_limit(ctx, data, len, map->len);
+    return cli_bcapi_file_find_limit(ctx, data, len, fmap_len(map));
 }
 
 int32_t cli_bcapi_file_find_limit(struct cli_bc_ctx *ctx, const uint8_t *data, uint32_t len, int32_t limit)

@@ -288,9 +288,9 @@ cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, 
     }
 
     if (basetype == CL_TYPE_PART_ANY) {
-        bread = MIN(map->len, CL_PART_MBUFF_SIZE);
+        bread = MIN(fmap_len(map), CL_PART_MBUFF_SIZE);
     } else {
-        bread = MIN(map->len, CL_FILE_MBUFF_SIZE);
+        bread = MIN(fmap_len(map), CL_FILE_MBUFF_SIZE);
     }
     if (bread > MAGIC_BUFFER_SIZE) {
         /* Save anyone who tampered with the header */
@@ -370,9 +370,9 @@ cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, 
                 }
 
                 if (znamep == NULL) {
-                    if (map->len - zoff > SIZEOF_LOCAL_HEADER) {
+                    if (fmap_len(map) - zoff > SIZEOF_LOCAL_HEADER) {
                         zoff -= SIZEOF_LOCAL_HEADER + OOXML_DETECT_MAXLEN + 1; /* remap for SIZEOF_LOCAL_HEADER+filelen for header overlap map boundary */
-                        zread = MIN(MAGIC_BUFFER_SIZE, map->len - zoff);
+                        zread = MIN(MAGIC_BUFFER_SIZE, fmap_len(map) - zoff);
                         zbuff = fmap_need_off_once(map, zoff, zread);
                         if (zbuff == NULL) {
                             cli_dbgmsg("cli_determine_fmap_type: error mapping data for OOXML check\n");
@@ -388,7 +388,7 @@ cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, 
             }
         } else if (ret == CL_TYPE_MBR) {
             /* given filetype sig type 0 */
-            int iret = cli_mbr_check(buff, bread, map->len);
+            int iret = cli_mbr_check(buff, bread, fmap_len(map));
             if (iret == CL_TYPE_GPT) {
                 cli_dbgmsg("Recognized GUID Partition Table file\n");
                 return CL_TYPE_GPT;

@@ -113,7 +113,7 @@ int cli_scandmg(cli_ctx *ctx)
         return CL_ENULLARG;
     }
 
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
     if (maplen <= 512) {
         cli_dbgmsg("cli_scandmg: DMG smaller than DMG koly block!\n");
         return CL_CLEAN;

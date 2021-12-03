@@ -1884,7 +1884,7 @@ int html_normalise_map(fmap_t *map, const char *dirname, tag_arguments_t *hrefs,
     int retval = FALSE;
     m_area_t m_area;
 
-    m_area.length = map->len;
+    m_area.length = fmap_len(map);
     m_area.offset = 0;
     m_area.map    = map;
     retval        = cli_html_normalise(-1, &m_area, dirname, hrefs, dconf);
@@ -1901,7 +1901,7 @@ int html_screnc_decode(fmap_t *map, const char *dirname)
     m_area_t m_area;
 
     memset(&m_area, 0, sizeof(m_area));
-    m_area.length = map->len;
+    m_area.length = fmap_len(map);
     m_area.offset = 0;
     m_area.map    = map;
 

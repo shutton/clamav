@@ -222,13 +222,13 @@ static int mspack_fmap_seek(struct mspack_file *file, off_t offset, int mode)
                 new_pos = mspack_handle->offset + offset;
                 break;
             case MSPACK_SYS_SEEK_END:
-                new_pos = mspack_handle->fmap->len + offset;
+                new_pos = fmap_len(mspack_handle->fmap) + offset;
                 break;
             default:
                 cli_dbgmsg("%s() err %d\n", __func__, __LINE__);
                 return -1;
         }
-        if (new_pos < 0 || new_pos > (off_t)mspack_handle->fmap->len) {
+        if (new_pos < 0 || new_pos > (off_t)fmap_len(mspack_handle->fmap)) {
             cli_dbgmsg("%s() err %d\n", __func__, __LINE__);
             return -1;
         }

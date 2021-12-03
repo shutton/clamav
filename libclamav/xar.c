@@ -597,10 +597,10 @@ int cli_scanxar(cli_ctx *ctx)
                     break;
                 }
 
-                while ((size_t)at < map->len && (unsigned long)at < offset + hdr.toc_length_compressed + hdr.size + length) {
+                while ((size_t)at < fmap_len(map) && (unsigned long)at < offset + hdr.toc_length_compressed + hdr.size + length) {
                     unsigned long avail_in;
                     void *next_in;
-                    unsigned int bytes = MIN(map->len - at, map->pgsz);
+                    unsigned int bytes = MIN(fmap_len(map) - at, fmap_pgsz(map));
                     bytes              = MIN(length, bytes);
                     if (!(strm.next_in = next_in = (void *)fmap_need_off_once(map, at, bytes))) {
                         cli_dbgmsg("cli_scanxar: Can't read %u bytes @ %lu.\n", bytes, (long unsigned)at);
@@ -659,7 +659,7 @@ int cli_scanxar(cli_ctx *ctx)
 #define CLI_LZMA_IBUF_SIZE CLI_LZMA_OBUF_SIZE >> 2 /* estimated compression ratio 25% */
             {
                 struct CLI_LZMA lz;
-                unsigned long in_remaining = MIN(length, map->len - at);
+                unsigned long in_remaining = MIN(length, fmap_len(map) - at);
                 unsigned long out_size     = 0;
                 unsigned char *buff        = __lzma_wrap_alloc(NULL, CLI_LZMA_OBUF_SIZE);
                 int lret;
@@ -702,7 +702,7 @@ int cli_scanxar(cli_ctx *ctx)
 
                 at += CLI_LZMA_HDR_SIZE;
                 in_remaining -= CLI_LZMA_HDR_SIZE;
-                while (at < map->len && at < offset + (size_t)hdr.toc_length_compressed + (size_t)hdr.size + length) {
+                while (at < fmap_len(map) && at < offset + (size_t)hdr.toc_length_compressed + (size_t)hdr.size + length) {
                     SizeT avail_in;
                     SizeT avail_out;
                     void *next_in;
@@ -780,7 +780,7 @@ int cli_scanxar(cli_ctx *ctx)
                 /* for uncompressed, bzip2, xz, and unknown, just pull the file, cli_magic_scan_desc does the rest */
                 do_extract_cksum = 0;
                 {
-                    size_t writelen = MIN(map->len - at, length);
+                    size_t writelen = MIN(fmap_len(map) - at, length);
 
                     if (ctx->engine->maxfilesize)
                         writelen = MIN((size_t)(ctx->engine->maxfilesize), writelen);

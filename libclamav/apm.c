@@ -83,7 +83,7 @@ int cli_scanapm(cli_ctx *ctx)
     sectorsize = ddm.blockSize;
 
     /* size of total file must be described by the ddm */
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
     if ((ddm.blockSize * ddm.blockCount) != maplen) {
         cli_dbgmsg("cli_scanapm: File described %u size does not match %lu actual size\n",
                    (ddm.blockSize * ddm.blockCount), (unsigned long)maplen);

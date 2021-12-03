@@ -208,25 +208,25 @@ static inline cl_error_t matcher_run(const struct cli_matcher *root,
         uint64_t maxfilesize;
 
         if (map && (pcremode == PCRE_SCAN_FMAP)) {
-            if (offset + length >= map->len) {
+            if (offset + length >= fmap_len(map)) {
                 /* check that scanned map does not exceed pcre maxfilesize limit */
                 maxfilesize = (uint64_t)cl_engine_get_num(ctx->engine, CL_ENGINE_PCRE_MAX_FILESIZE, &rc);
                 if (rc != CL_SUCCESS)
                     return rc;
-                if (maxfilesize && (map->len > maxfilesize)) {
+                if (maxfilesize && (fmap_len(map) > maxfilesize)) {
                     cli_dbgmsg("matcher_run: pcre max filesize (map) exceeded (limit: %llu, needed: %llu)\n",
-                               (long long unsigned)maxfilesize, (long long unsigned)map->len);
+                               (long long unsigned)maxfilesize, (long long unsigned)fmap_len(map));
                     return CL_EMAXSIZE;
                 }
 
-                cli_dbgmsg("matcher_run: performing regex matching on full map: %u+%u(%u) >= %zu\n", offset, length, offset + length, map->len);
+                cli_dbgmsg("matcher_run: performing regex matching on full map: %u+%u(%u) >= %zu\n", offset, length, offset + length, fmap_len(map));
 
-                buffer = fmap_need_off_once(map, 0, map->len);
+                buffer = fmap_need_off_once(map, 0, fmap_len(map));
                 if (!buffer)
                     return CL_EMEM;
 
                 /* scan the full buffer */
-                ret = cli_pcre_scanbuf(buffer, map->len, virname, acres, root, mdata, poffdata, ctx);
+                ret = cli_pcre_scanbuf(buffer, fmap_len(map), virname, acres, root, mdata, poffdata, ctx);
             }
         } else if (pcremode == PCRE_SCAN_BUFF) {
             /* check that scanned buffer does not exceed pcre maxfilesize limit */
@@ -519,7 +519,7 @@ void cli_targetinfo(struct cli_target_info *info, unsigned int target, cli_ctx *
 {
     int (*einfo)(cli_ctx *, struct cli_exe_info *) = NULL;
 
-    info->fsize = ctx->fmap->len;
+    info->fsize = fmap_len(ctx->fmap);
 
     if (target == 1)
         einfo = cli_pe_targetinfo;
@@ -572,7 +572,7 @@ cl_error_t cli_check_fp(cli_ctx *ctx, const char *vname)
             stack_index--;
             continue;
         }
-        size = map->len;
+        size = fmap_len(map);
 
         /*
          * First, check the MD5 digest.
@@ -587,7 +587,7 @@ cl_error_t cli_check_fp(cli_ctx *ctx, const char *vname)
         }
 
         if (cli_debug_flag || ctx->engine->cb_hash) {
-            const char *name = ctx->recursion_stack[stack_index].fmap->name;
+            const char *name = fmap_name(ctx->recursion_stack[stack_index].fmap);
             const char *type = cli_ftname(ctx->recursion_stack[stack_index].type);
 
             for (i = 0; i < 16; i++)
@@ -782,9 +782,10 @@ cl_error_t cli_scan_desc(int desc, cli_ctx *ctx, cli_file_t ftype, uint8_t ftonl
 
     status = cli_scan_fmap(ctx, ftype, ftonly, ftoffset, acmode, acres, NULL);
 
-    map->dont_cache_flag = ctx->fmap->dont_cache_flag; /* Set the parent layer's "don't cache" flag to match the child.
-                                                          TODO: This may not be needed since `emax_reached()` should've
-                                                          already done that for us. */
+    /* Set the parent layer's "don't cache" flag to match the child.
+       TODO: This may not be needed since `emax_reached()` should've
+       already done that for us. */
+    fmap_set_dont_cache_flag(map, fmap_dont_cache_flag(ctx->fmap));
 
     (void)cli_recursion_stack_pop(ctx); /* Restore the parent fmap */
 
@@ -832,7 +833,7 @@ static cl_error_t lsig_eval(cli_ctx *ctx, struct cli_matcher *root, struct cli_a
             goto done;
         if (ac_lsig->tdb.intermediates && !intermediates_eval(ctx, ac_lsig))
             goto done;
-        if (ac_lsig->tdb.filesize && (ac_lsig->tdb.filesize[0] > ctx->fmap->len || ac_lsig->tdb.filesize[1] < ctx->fmap->len))
+        if (ac_lsig->tdb.filesize && (ac_lsig->tdb.filesize[0] > fmap_len(ctx->fmap) || ac_lsig->tdb.filesize[1] < fmap_len(ctx->fmap)))
             goto done;
 
         if (ac_lsig->tdb.ep || ac_lsig->tdb.nos) {
@@ -855,7 +856,7 @@ static cl_error_t lsig_eval(cli_ctx *ctx, struct cli_matcher *root, struct cli_a
                  * Testing with both HandlerType type reassignment sigs + Container/Intermediates sigs should indicate if
                  * a change is needed.
                  */
-                new_map = fmap_duplicate(ctx->fmap, 0, ctx->fmap->len, ctx->fmap->name);
+                new_map = fmap_duplicate(ctx->fmap, 0, fmap_len(ctx->fmap), fmap_name(ctx->fmap));
                 if (NULL == new_map) {
                     status = CL_EMEM;
                     cli_dbgmsg("Failed to duplicate the current fmap for a re-scan as a different type.\n");
@@ -932,7 +933,7 @@ static cl_error_t yara_eval(cli_ctx *ctx, struct cli_matcher *root, struct cli_a
 
     memset(&context, 0, sizeof(YR_SCAN_CONTEXT));
     context.fmap      = ctx->fmap;
-    context.file_size = ctx->fmap->len;
+    context.file_size = fmap_len(ctx->fmap);
     if (target_info != NULL) {
         if (target_info->status == 1)
             context.entry_point = target_info->exeinfo.ep;
@@ -1125,7 +1126,7 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
             return ret;
         }
         if (troot->bm_offmode) {
-            if (ctx->fmap->len >= CLI_DEFAULT_BM_OFFMODE_FSIZE) {
+            if (fmap_len(ctx->fmap) >= CLI_DEFAULT_BM_OFFMODE_FSIZE) {
                 if ((ret = cli_bm_initoff(troot, &toff, &info))) {
                     if (!ftonly) {
                         cli_ac_freedata(&gdata);
@@ -1165,8 +1166,8 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
 
     if (!ftonly && hdb) {
         if (!refhash) {
-            if (cli_hm_have_size(hdb, CLI_HASH_MD5, ctx->fmap->len) ||
-                cli_hm_have_size(fp, CLI_HASH_MD5, ctx->fmap->len) ||
+            if (cli_hm_have_size(hdb, CLI_HASH_MD5, fmap_len(ctx->fmap)) ||
+                cli_hm_have_size(fp, CLI_HASH_MD5, fmap_len(ctx->fmap)) ||
                 cli_hm_have_wild(hdb, CLI_HASH_MD5) ||
                 cli_hm_have_wild(fp, CLI_HASH_MD5)) {
                 compute_hash[CLI_HASH_MD5] = 1;
@@ -1178,18 +1179,18 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
             memcpy(digest[CLI_HASH_MD5], refhash, 16);
         }
 
-        if (cli_hm_have_size(hdb, CLI_HASH_SHA1, ctx->fmap->len) ||
+        if (cli_hm_have_size(hdb, CLI_HASH_SHA1, fmap_len(ctx->fmap)) ||
             cli_hm_have_wild(hdb, CLI_HASH_SHA1) ||
-            cli_hm_have_size(fp, CLI_HASH_SHA1, ctx->fmap->len) ||
+            cli_hm_have_size(fp, CLI_HASH_SHA1, fmap_len(ctx->fmap)) ||
             cli_hm_have_wild(fp, CLI_HASH_SHA1)) {
             compute_hash[CLI_HASH_SHA1] = 1;
         } else {
             compute_hash[CLI_HASH_SHA1] = 0;
         }
 
-        if (cli_hm_have_size(hdb, CLI_HASH_SHA256, ctx->fmap->len) ||
+        if (cli_hm_have_size(hdb, CLI_HASH_SHA256, fmap_len(ctx->fmap)) ||
             cli_hm_have_wild(hdb, CLI_HASH_SHA256) ||
-            cli_hm_have_size(fp, CLI_HASH_SHA256, ctx->fmap->len) ||
+            cli_hm_have_size(fp, CLI_HASH_SHA256, fmap_len(ctx->fmap)) ||
             cli_hm_have_wild(fp, CLI_HASH_SHA256)) {
             compute_hash[CLI_HASH_SHA256] = 1;
         } else {
@@ -1197,8 +1198,8 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
         }
     }
 
-    while (offset < ctx->fmap->len) {
-        bytes = MIN(ctx->fmap->len - offset, SCANBUFF);
+    while (offset < fmap_len(ctx->fmap)) {
+        bytes = MIN(fmap_len(ctx->fmap) - offset, SCANBUFF);
         if (!(buff = fmap_need_off_once(ctx->fmap, offset, bytes)))
             break;
         if (ctx->scanned)
@@ -1308,7 +1309,7 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
                 continue;
 
             /* Do hash scan */
-            if ((ret = cli_hm_scan(digest[hashtype], ctx->fmap->len, &virname, hdb, hashtype)) == CL_VIRUS) {
+            if ((ret = cli_hm_scan(digest[hashtype], fmap_len(ctx->fmap), &virname, hdb, hashtype)) == CL_VIRUS) {
                 found += 1;
             }
             if (!found || SCAN_ALLMATCHES) {
@@ -1321,7 +1322,7 @@ cl_error_t cli_scan_fmap(cli_ctx *ctx, cli_file_t ftype, uint8_t ftonly, struct 
                 for (hashtype2 = CLI_HASH_MD5; hashtype2 < CLI_HASH_AVAIL_TYPES; hashtype2++) {
                     if (!compute_hash[hashtype2])
                         continue;
-                    if (cli_hm_scan(digest[hashtype2], ctx->fmap->len, NULL, fp, hashtype2) == CL_VIRUS) {
+                    if (cli_hm_scan(digest[hashtype2], fmap_len(ctx->fmap), NULL, fp, hashtype2) == CL_VIRUS) {
                         found = 0;
                         ret   = CL_CLEAN;
                         break;

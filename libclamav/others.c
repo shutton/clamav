@@ -1389,7 +1389,7 @@ cl_error_t cli_recursion_stack_push(cli_ctx *ctx, cl_fmap_t *map, cli_file_t typ
     recursion_level_t *new_container     = NULL;
 
     // Check the regular limits
-    if (CL_SUCCESS != (status = cli_checklimits("cli_updatelimits", ctx, map->len, 0, 0))) {
+    if (CL_SUCCESS != (status = cli_checklimits("cli_updatelimits", ctx, fmap_len(map), 0, 0))) {
         cli_dbgmsg("cli_recursion_stack_push: Some content was skipped. The scan result will not be cached.\n");
         emax_reached(ctx); // Disable caching for all recursion layers.
         goto done;
@@ -1413,7 +1413,7 @@ cl_error_t cli_recursion_stack_push(cli_ctx *ctx, cl_fmap_t *map, cli_file_t typ
 
     new_container->fmap = map;
     new_container->type = type;
-    new_container->size = map->len;
+    new_container->size = fmap_len(map);
 
     if (is_new_buffer) {
         new_container->recursion_level_buffer      = current_container->recursion_level_buffer + 1;

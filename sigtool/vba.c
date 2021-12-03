@@ -114,7 +114,7 @@ cli_ctx *convenience_ctx(int fd)
     // ctx was calloc'd, so recursion_level starts at 0.
     ctx->recursion_stack[ctx->recursion_level].fmap = new_map;
     ctx->recursion_stack[ctx->recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-    ctx->recursion_stack[ctx->recursion_level].size = new_map->len;
+    ctx->recursion_stack[ctx->recursion_level].size = fmap_len(new_map);
 
     ctx->fmap = ctx->recursion_stack[ctx->recursion_level].fmap;
 

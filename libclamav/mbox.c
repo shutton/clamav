@@ -4011,7 +4011,7 @@ getline_from_mbox(char *buffer, size_t buffer_len, fmap_t *map, size_t *at)
     const char *src, *cursrc;
     char *curbuf;
     size_t i;
-    size_t input_len = MIN(map->len - *at, buffer_len + 1);
+    size_t input_len = MIN(fmap_len(map) - *at, buffer_len + 1);
     src = cursrc = fmap_need_off_once(map, *at, input_len);
 
     /* we check for eof from the result of GETC()

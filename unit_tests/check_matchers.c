@@ -156,14 +156,12 @@ static const struct pcre_testdata_s {
 static cli_ctx ctx;
 static struct cl_scan_options options;
 
-static fmap_t thefmap;
 static const char *virname = NULL;
 static void setup(void)
 {
+    fmap_t *thefmap = fmap_zeroed();
     struct cli_matcher *root;
     virname = NULL;
-
-    memset(&thefmap, 0, sizeof(thefmap));
 
     memset(&ctx, 0, sizeof(ctx));
     memset(&options, 0, sizeof(struct cl_scan_options));

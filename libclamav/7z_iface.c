@@ -70,7 +70,7 @@ static SRes FileInStream_fmap_Seek(void *pp, Int64 *pos, ESzSeek origin)
             *pos = p->s.curpos;
             break;
         case SZ_SEEK_END:
-            p->s.curpos = p->file.fmap->len + *pos;
+            p->s.curpos = fmap_len(p->file.fmap) + *pos;
             *pos        = p->s.curpos;
             break;
         default:

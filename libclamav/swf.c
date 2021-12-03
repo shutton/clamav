@@ -164,13 +164,13 @@ static int scanzws(cli_ctx *ctx, struct swf_file_hdr *hdr)
     offset += sizeof(d_insize);
 
     /* check if declared input size matches actual output size */
-    /* map->len = header (8 bytes) + d_insize (4 bytes) + flags (5 bytes) + compressed stream */
-    if (d_insize != (map->len - 17)) {
+    /* fmap_len(map) = header (8 bytes) + d_insize (4 bytes) + flags (5 bytes) + compressed stream */
+    if (d_insize != (fmap_len(map) - 17)) {
         cli_warnmsg("SWF: declared input length != compressed stream size, %u != %llu\n",
-                    d_insize, (long long unsigned)(map->len - 17));
+                    d_insize, (long long unsigned)(fmap_len(map) - 17));
     } else {
         cli_dbgmsg("SWF: declared input length == compressed stream size, %u == %llu\n",
-                   d_insize, (long long unsigned)(map->len - 17));
+                   d_insize, (long long unsigned)(fmap_len(map) - 17));
     }
 
     /* first buffer required for initializing LZMA */
@@ -504,7 +504,7 @@ int cli_scanswf(cli_ctx *ctx)
         return CL_CLEAN;
     }
 
-    while (offset < map->len) {
+    while (offset < fmap_len(map)) {
         GETWORD(tag_hdr);
         tag_type = tag_hdr >> 6;
         if (tag_type == 0)
@@ -516,7 +516,7 @@ int cli_scanswf(cli_ctx *ctx)
         pt = tagname(tag_type);
         cli_dbgmsg("SWF: %s\n", pt ? pt : "UNKNOWN TAG");
         cli_dbgmsg("SWF: Tag length: %u\n", tag_len);
-        if (tag_len > map->len) {
+        if (tag_len > fmap_len(map)) {
             cli_dbgmsg("SWF: Invalid tag length.\n");
             return CL_EFORMAT;
         }

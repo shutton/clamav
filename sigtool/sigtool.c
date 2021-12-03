@@ -235,7 +235,7 @@ static int hashpe(const char *filename, unsigned int class, int type)
     // ctx was memset, so recursion_level starts at 0.
     ctx.recursion_stack[ctx.recursion_level].fmap = new_map;
     ctx.recursion_stack[ctx.recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-    ctx.recursion_stack[ctx.recursion_level].size = new_map->len;
+    ctx.recursion_stack[ctx.recursion_level].size = fmap_len(new_map);
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 
@@ -392,8 +392,8 @@ static int asciinorm(const struct optstruct *opts)
         return -1;
     }
 
-    if (map->len > MAX_ASCII_FILE_SIZE) {
-        mprintf("!asciinorm: File size of %zu too large\n", map->len);
+    if (fmap_len(map) > MAX_ASCII_FILE_SIZE) {
+        mprintf("!asciinorm: File size of %zu too large\n", fmap_len(map));
         close(fd);
         free(norm_buff);
         funmap(map);
@@ -412,7 +412,7 @@ static int asciinorm(const struct optstruct *opts)
     text_normalize_init(&state, norm_buff, ASCII_FILE_BUFF_LENGTH);
 
     map_off = 0;
-    while (map_off != map->len) {
+    while (map_off != fmap_len(map)) {
         size_t written;
         if (!(written = text_normalize_map(&state, map, map_off))) break;
         map_off += written;
@@ -2259,7 +2259,7 @@ static void matchsig(const char *sig, const char *offset, int fd)
     // ctx was memset, so recursion_level starts at 0.
     ctx.recursion_stack[ctx.recursion_level].fmap = new_map;
     ctx.recursion_stack[ctx.recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-    ctx.recursion_stack[ctx.recursion_level].size = new_map->len;
+    ctx.recursion_stack[ctx.recursion_level].size = fmap_len(new_map);
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 
@@ -3474,7 +3474,7 @@ static int dumpcerts(const struct optstruct *opts)
     // ctx was memset, so recursion_level starts at 0.
     ctx.recursion_stack[ctx.recursion_level].fmap = new_map;
     ctx.recursion_stack[ctx.recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-    ctx.recursion_stack[ctx.recursion_level].size = new_map->len;
+    ctx.recursion_stack[ctx.recursion_level].size = fmap_len(new_map);
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 

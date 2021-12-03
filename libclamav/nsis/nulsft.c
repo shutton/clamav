@@ -454,7 +454,7 @@ static int nsis_headers(struct nsis_st *n, cli_ctx *ctx)
 
     n->hsz    = (uint32_t)cli_readint32(buf + 0x14);
     n->asz    = (uint32_t)cli_readint32(buf + 0x18);
-    n->fullsz = n->map->len;
+    n->fullsz = fmap_len(n->map);
 
     cli_dbgmsg("NSIS: Header info - Flags=%x, Header size=%x, Archive size=%x\n", cli_readint32(buf), n->hsz, n->asz);
 

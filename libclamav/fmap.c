@@ -48,6 +48,8 @@
 #include "others.h"
 #include "str.h"
 
+#include "fmap-internal.h"
+
 #define FM_MASK_COUNT 0x3fffffff
 #define FM_MASK_PAGED 0x40000000
 #define FM_MASK_SEEN 0x80000000
@@ -252,13 +254,13 @@ fmap_t *fmap_duplicate(cl_fmap_t *map, size_t offset, size_t length, const char 
     /* Duplicate the state of the original map */
     memcpy(duplicate_map, map, sizeof(cl_fmap_t));
 
-    if (offset > map->len) {
+    if (offset > fmap_len(map)) {
         /* invalid offset, exceeds length of map */
         cli_warnmsg("fmap_duplicate: requested offset exceeds end of map\n");
         goto done;
     }
 
-    if (offset > 0 || length < map->len) {
+    if (offset > 0 || length < fmap_len(map)) {
         /*
          * Caller requested a window into the current map, not the whole map.
          */
@@ -267,17 +269,17 @@ fmap_t *fmap_duplicate(cl_fmap_t *map, size_t offset, size_t length, const char 
         /* Note: We can't change offset because then we'd have to discard/move cached
          * data, instead use nested_offset to reuse the already cached data */
         duplicate_map->nested_offset += offset;
-        duplicate_map->len = MIN(length, map->len - offset);
+        duplicate_map->len = MIN(length, fmap_len(map) - offset);
 
         /* The real_len is the nested_offset + the len of the nested fmap.
            real_len is mostly just a shorthand for when doing bounds checking.
            We do not need to keep track of the original length of the OG fmap */
         duplicate_map->real_len = duplicate_map->nested_offset + duplicate_map->len;
 
-        if (!CLI_ISCONTAINED_2(map->nested_offset, map->len,
+        if (!CLI_ISCONTAINED_2(map->nested_offset, fmap_len(map),
                                duplicate_map->nested_offset, duplicate_map->len)) {
             size_t len1, len2;
-            len1 = map->nested_offset + map->len;
+            len1 = map->nested_offset + fmap_len(map);
             len2 = duplicate_map->nested_offset + duplicate_map->len;
             cli_warnmsg("fmap_duplicate: internal map error: %zu, %zu; %zu, %zu\n",
                         map->nested_offset, len1,
@@ -1088,7 +1090,7 @@ cl_error_t fmap_get_MD5(fmap_t *map, unsigned char **hash)
     size_t todo, at = 0;
     void *hashctx = NULL;
 
-    todo = map->len;
+    todo = fmap_len(map);
 
     if (!map->have_maphash) {
         /* Need to calculate the hash */
@@ -1135,4 +1137,136 @@ done:
     }
 
     return status;
+}
+
+fmap_t *fmap_zeroed()
+{
+    fmap_t *map = calloc(1, sizeof(fmap_t));
+    return map;
+}
+
+inline void funmap(fmap_t *m)
+{
+    m->unmap(m);
+}
+
+inline const void *fmap_need_off(fmap_t *m, size_t at, size_t len)
+{
+    return m->need(m, at, len, 1);
+}
+
+inline const void *fmap_need_off_once(fmap_t *m, size_t at, size_t len)
+{
+    return m->need(m, at, len, 0);
+}
+
+inline size_t fmap_ptr2off(const fmap_t *m, const void *ptr)
+{
+    return (size_t)((const char *)ptr - (const char *)m->data) - m->nested_offset;
+}
+
+inline const void *fmap_need_ptr(fmap_t *m, const void *ptr, size_t len)
+{
+    return m->need(m, fmap_ptr2off(m, ptr), len, 1);
+}
+
+inline const void *fmap_need_ptr_once(fmap_t *m, const void *ptr, size_t len)
+{
+    return m->need(m, fmap_ptr2off(m, ptr), len, 0);
+}
+
+inline void fmap_unneed_off(fmap_t *m, size_t at, size_t len)
+{
+    m->unneed_off(m, at, len);
+}
+
+inline void fmap_unneed_ptr(fmap_t *m, const void *ptr, size_t len)
+{
+    fmap_unneed_off(m, fmap_ptr2off(m, ptr), len);
+}
+
+inline size_t fmap_readn(fmap_t *m, void *dst, size_t at, size_t len)
+{
+    const void *src;
+
+    if (at == m->len || !len)
+        return 0;
+    if (at > m->len)
+        return (size_t)-1;
+    if (len > m->len - at)
+        len = m->len - at;
+    src = fmap_need_off_once(m, at, len);
+    if (!src)
+        return (size_t)-1;
+    memcpy(dst, src, len);
+    return (len <= INT_MAX) ? len : (size_t)-1;
+}
+
+inline const void *fmap_need_str(fmap_t *m, const void *ptr, size_t len_hint)
+{
+    return m->need_offstr(m, fmap_ptr2off(m, ptr), len_hint);
+}
+
+inline const void *fmap_need_offstr(fmap_t *m, size_t at, size_t len_hint)
+{
+    return m->need_offstr(m, at, len_hint);
+}
+
+inline const void *fmap_gets(fmap_t *m, char *dst, size_t *at, size_t max_len)
+{
+    return m->gets(m, dst, at, max_len);
+}
+
+inline const void *fmap_need_off_once_len(fmap_t *m, size_t at, size_t len, size_t *lenout)
+{
+    const void *p;
+    if (at >= m->len) {
+        *lenout = 0;
+        return NULL; /* EOF, not read error */
+    }
+    if (len > m->len - at)
+        len = m->len - at;
+    p       = fmap_need_off_once(m, at, len);
+    *lenout = p ? len : 0;
+    return p;
+}
+
+inline const void *fmap_need_ptr_once_len(fmap_t *m, const void *ptr, size_t len, size_t *lenout)
+{
+    return fmap_need_off_once_len(m, fmap_ptr2off(m, ptr), len, lenout);
+}
+
+inline size_t fmap_len(fmap_t *map)
+{
+    return map->len;
+}
+
+inline const char *fmap_name(fmap_t *map)
+{
+    return map->name;
+}
+
+inline uint16_t fmap_dont_cache_flag(fmap_t *map)
+{
+    return map->dont_cache_flag;
+}
+
+inline void fmap_set_dont_cache_flag(fmap_t *map, uint16_t new_value)
+{
+    map->dont_cache_flag = new_value;
+}
+
+inline uint64_t fmap_pgsz(fmap_t *map)
+{
+    return map->pgsz;
+}
+
+inline size_t fmap_nested_offset(fmap_t *map)
+{
+    return map->nested_offset;
+}
+
+inline size_t fmap_real_len(fmap_t *map)
+{
+    return map->real_len;
 }

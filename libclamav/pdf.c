@@ -3471,7 +3471,7 @@ cl_error_t cli_pdf(const char *dir, cli_ctx *ctx, off_t offset)
     cl_error_t rc = CL_SUCCESS;
     struct pdf_struct pdf;
     fmap_t *map   = ctx->fmap;
-    size_t size   = map->len - offset;
+    size_t size   = fmap_len(map) - offset;
     off_t versize = size > 1032 ? 1032 : size;
     off_t map_off, bytesleft;
     unsigned long xref;
@@ -3562,11 +3562,11 @@ cl_error_t cli_pdf(const char *dir, cli_ctx *ctx, off_t offset)
     offset += pdfver - start;
 
     /* find trailer and xref, don't fail if not found */
-    map_off = (off_t)map->len - 2048;
+    map_off = (off_t)fmap_len(map) - 2048;
     if (map_off < 0)
         map_off = 0;
 
-    bytesleft = map->len - map_off;
+    bytesleft = fmap_len(map) - map_off;
 
     eofmap = fmap_need_off_once(map, map_off, bytesleft);
     if (!eofmap) {
@@ -3627,7 +3627,7 @@ cl_error_t cli_pdf(const char *dir, cli_ctx *ctx, off_t offset)
                 pdf.flags |= 1 << BAD_PDF_TRAILER;
             } else {
                 xref      = (unsigned long)temp_long;
-                bytesleft = map->len - offset - xref;
+                bytesleft = fmap_len(map) - offset - xref;
                 if (bytesleft > 4096)
                     bytesleft = 4096;
 

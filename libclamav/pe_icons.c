@@ -172,7 +172,7 @@ int cli_groupiconscan(struct ICON_ENV *icon_env, uint32_t rva)
 
     int err            = 0;
     fmap_t *map        = ctx->fmap;
-    const uint8_t *grp = fmap_need_off_once(map, cli_rawaddr(rva, peinfo->sections, peinfo->nsections, (unsigned int *)(&err), map->len, peinfo->hdr_size), 16);
+    const uint8_t *grp = fmap_need_off_once(map, cli_rawaddr(rva, peinfo->sections, peinfo->nsections, (unsigned int *)(&err), fmap_len(map), peinfo->hdr_size), 16);
 
     if (grp && !err) {
         uint32_t gsz = cli_readint32(grp + 4);
@@ -190,7 +190,7 @@ int cli_groupiconscan(struct ICON_ENV *icon_env, uint32_t rva)
                 uint16_t id;
             } * dir;
 
-            raddr = cli_rawaddr(cli_readint32(grp), peinfo->sections, peinfo->nsections, (unsigned int *)(&err), map->len, peinfo->hdr_size);
+            raddr = cli_rawaddr(cli_readint32(grp), peinfo->sections, peinfo->nsections, (unsigned int *)(&err), fmap_len(map), peinfo->hdr_size);
             cli_dbgmsg("cli_scanicon: icon group @%x\n", raddr);
             grp = fmap_need_off_once(map, raddr, gsz);
             if (grp && !err) {
@@ -1370,7 +1370,7 @@ static int parseicon(struct ICON_ENV *icon_env, uint32_t rva)
         return CL_SUCCESS;
     map   = ctx->fmap;
     tempd = (cli_debug_flag && ctx->engine->keeptmp) ? (ctx->sub_tmpdir ? ctx->sub_tmpdir : cli_gettmpdir()) : NULL;
-    icoff = cli_rawaddr(rva, peinfo->sections, peinfo->nsections, &err, map->len, peinfo->hdr_size);
+    icoff = cli_rawaddr(rva, peinfo->sections, peinfo->nsections, &err, fmap_len(map), peinfo->hdr_size);
 
     /* read the bitmap header */
     if (err || !(rawimage = fmap_need_off_once(map, icoff, 4))) {
@@ -1380,7 +1380,7 @@ static int parseicon(struct ICON_ENV *icon_env, uint32_t rva)
     }
 
     rva   = cli_readint32(rawimage);
-    icoff = cli_rawaddr(rva, peinfo->sections, peinfo->nsections, &err, map->len, peinfo->hdr_size);
+    icoff = cli_rawaddr(rva, peinfo->sections, peinfo->nsections, &err, fmap_len(map), peinfo->hdr_size);
     if (err || fmap_readn(map, &bmphdr, icoff, sizeof(bmphdr)) != sizeof(bmphdr)) {
         icon_env->err_bhoof++;
         //cli_dbgmsg("parseicon: bmp header is out of file\n");

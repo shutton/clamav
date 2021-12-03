@@ -109,7 +109,7 @@ int cli_mbr_check2(cli_ctx *ctx, size_t sectorsize)
     mbr_base = sectorsize - sizeof(struct mbr_boot_record);
 
     /* size of total file must be a multiple of the sector size */
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
     if ((maplen % sectorsize) != 0) {
         cli_dbgmsg("cli_scanmbr: File sized %lu is not a multiple of sector size %lu\n",
                    (unsigned long)maplen, (unsigned long)sectorsize);
@@ -158,7 +158,7 @@ int cli_scanmbr(cli_ctx *ctx, size_t sectorsize)
     mbr_base = sectorsize - sizeof(struct mbr_boot_record);
 
     /* size of total file must be a multiple of the sector size */
-    maplen = ctx->fmap->len;
+    maplen = fmap_len(ctx->fmap);
     if ((maplen % sectorsize) != 0) {
         cli_dbgmsg("cli_scanmbr: File sized %lu is not a multiple of sector size %lu\n",
                    (unsigned long)maplen, (unsigned long)sectorsize);

@@ -224,7 +224,7 @@ cl_error_t cli_parsegif(cli_ctx *ctx)
         global_color_table_size = 3 * (1 << ((screen_desc.flags & GIF_SCREEN_DESC_FLAGS_MASK_SIZE_OF_GLOBAL_COLOR_TABLE) + 1));
         cli_dbgmsg("GIF: Global Color Table size: %zu\n", global_color_table_size);
 
-        if (offset + (size_t)global_color_table_size > map->len) {
+        if (offset + (size_t)global_color_table_size > fmap_len(map)) {
             cli_errmsg("GIF: EOF in the middle of the global color table, file truncated?\n");
             cli_append_possibly_unwanted(ctx, "Heuristics.Broken.Media.GIF.TruncatedGlobalColorTable");
             status = CL_EPARSE;
@@ -317,7 +317,7 @@ cl_error_t cli_parsegif(cli_ctx *ctx)
                             cli_dbgmsg("GIF:     Found sub-block of size %d\n", extension_block_size);
                         }
 
-                        if (offset + (size_t)extension_block_size > map->len) {
+                        if (offset + (size_t)extension_block_size > fmap_len(map)) {
                             cli_errmsg("GIF: EOF in the middle of a graphic control extension sub-block, file truncated?\n");
                             cli_append_possibly_unwanted(ctx, "Heuristics.Broken.Media.GIF.TruncatedExtensionSubBlock");
                             status = CL_EPARSE;
@@ -381,7 +381,7 @@ cl_error_t cli_parsegif(cli_ctx *ctx)
                         cli_dbgmsg("GIF:     Found a sub-block of size %d\n", image_data_block_size);
                     }
 
-                    if (offset + (size_t)image_data_block_size > map->len) {
+                    if (offset + (size_t)image_data_block_size > fmap_len(map)) {
                         cli_errmsg("GIF: EOF in the middle of an image data sub-block, file truncated?\n");
                         cli_append_possibly_unwanted(ctx, "Heuristics.Broken.Media.GIF.TruncatedImageDataBlock");
                         status = CL_EPARSE;
@@ -414,9 +414,9 @@ scan_overlay:
     }
 
     // Is there an overlay?
-    if (offset < map->len) {
-        cli_dbgmsg("GIF: Found extra data after the end of the GIF data stream: %zu bytes, we'll scan it!\n", map->len - offset);
-        cl_error_t nested_scan_result = cli_magic_scan_nested_fmap_type(map, offset, map->len - offset, ctx, CL_TYPE_ANY, NULL);
+    if (offset < fmap_len(map)) {
+        cli_dbgmsg("GIF: Found extra data after the end of the GIF data stream: %zu bytes, we'll scan it!\n", fmap_len(map) - offset);
+        cl_error_t nested_scan_result = cli_magic_scan_nested_fmap_type(map, offset, fmap_len(map) - offset, ctx, CL_TYPE_ANY, NULL);
         status                        = nested_scan_result != CL_SUCCESS ? nested_scan_result : status;
     }
 

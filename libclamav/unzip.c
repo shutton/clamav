@@ -1186,8 +1186,8 @@ cl_error_t cli_unzip(cli_ctx *ctx)
     size_t i;
 
     cli_dbgmsg("in cli_unzip\n");
-    fsize = (uint32_t)map->len;
-    if (sizeof(off_t) != sizeof(uint32_t) && (size_t)fsize != map->len) {
+    fsize = (uint32_t)fmap_len(map);
+    if (sizeof(off_t) != sizeof(uint32_t) && (size_t)fsize != fmap_len(map)) {
         cli_dbgmsg("cli_unzip: file too big\n");
         ret = CL_CLEAN;
         goto done;
@@ -1390,10 +1390,10 @@ cl_error_t unzip_single_internal(cli_ctx *ctx, off_t local_header_offset, zip_cb
     fmap_t *map = ctx->fmap;
 
     cli_dbgmsg("in cli_unzip_single\n");
-    fsize = (uint32_t)(map->len - local_header_offset);
+    fsize = (uint32_t)(fmap_len(map) - local_header_offset);
     if ((local_header_offset < 0) ||
-        ((size_t)local_header_offset > map->len) ||
-        ((sizeof(off_t) != sizeof(uint32_t)) && ((size_t)fsize != map->len - local_header_offset))) {
+        ((size_t)local_header_offset > fmap_len(map)) ||
+        ((sizeof(off_t) != sizeof(uint32_t)) && ((size_t)fsize != fmap_len(map) - local_header_offset))) {
 
         cli_dbgmsg("cli_unzip: bad offset\n");
         return CL_CLEAN;
@@ -1462,8 +1462,8 @@ cl_error_t unzip_search(cli_ctx *ctx, fmap_t *map, struct zip_requests *requests
     /* get priority to given map over ctx->fmap */
     if (ctx && !map)
         zmap = ctx->fmap;
-    fsize = zmap->len;
-    if (sizeof(off_t) != sizeof(uint32_t) && fsize != zmap->len) {
+    fsize = fmap_len(zmap);
+    if (sizeof(off_t) != sizeof(uint32_t) && fsize != fmap_len(zmap)) {
         cli_dbgmsg("unzip_search: file too big\n");
         return CL_CLEAN;
     }

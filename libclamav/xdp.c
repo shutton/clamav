@@ -102,12 +102,12 @@ cl_error_t cli_scanxdp(cli_ctx *ctx)
     char *dumpname;
     size_t i;
 
-    buf = (const char *)fmap_need_off_once(ctx->fmap, 0, ctx->fmap->len);
+    buf = (const char *)fmap_need_off_once(ctx->fmap, 0, fmap_len(ctx->fmap));
     if (!(buf))
         return CL_EREAD;
 
     if (ctx->engine->keeptmp) {
-        dumpname = dump_xdp(ctx, buf, ctx->fmap->len);
+        dumpname = dump_xdp(ctx, buf, fmap_len(ctx->fmap));
         if (dumpname)
             free(dumpname);
     }
@@ -119,7 +119,7 @@ cl_error_t cli_scanxdp(cli_ctx *ctx)
      * silently ignore the error and return CL_SUCCESS so the filetyping code can
      * continue on.
      */
-    reader = xmlReaderForMemory(buf, (int)(ctx->fmap->len), "noname.xml", NULL, CLAMAV_MIN_XMLREADER_FLAGS);
+    reader = xmlReaderForMemory(buf, (int)(fmap_len(ctx->fmap)), "noname.xml", NULL, CLAMAV_MIN_XMLREADER_FLAGS);
     if (!(reader))
         return CL_SUCCESS;
 

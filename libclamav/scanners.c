@@ -1220,8 +1220,8 @@ static cl_error_t cli_scangzip(cli_ctx *ctx)
         return ret;
     }
 
-    while (at < map->len) {
-        unsigned int bytes = MIN(map->len - at, map->pgsz);
+    while (at < fmap_len(map)) {
+        unsigned int bytes = MIN(fmap_len(map) - at, fmap_pgsz(map));
         if (!(z.next_in = (void *)fmap_need_off_once(map, at, bytes))) {
             cli_dbgmsg("GZip: Can't read %u bytes @ %lu.\n", bytes, (long unsigned)at);
             inflateEnd(&z);
@@ -1243,7 +1243,7 @@ static cl_error_t cli_scangzip(cli_ctx *ctx)
             if (inf != Z_OK && inf != Z_STREAM_END && inf != Z_BUF_ERROR) {
                 if (sizeof(buff) == z.avail_out) {
                     cli_dbgmsg("GZip: Bad stream, nothing in output buffer.\n");
-                    at = map->len;
+                    at = fmap_len(map);
                     break;
                 } else {
                     cli_dbgmsg("GZip: Bad stream, data in output buffer.\n");
@@ -1262,7 +1262,7 @@ static cl_error_t cli_scangzip(cli_ctx *ctx)
             }
             outsize += sizeof(buff) - z.avail_out;
             if (cli_checklimits("GZip", ctx, outsize, 0, 0) != CL_CLEAN) {
-                at = map->len;
+                at = fmap_len(map);
                 break;
             }
             if (inf == Z_STREAM_END) {
@@ -1270,7 +1270,7 @@ static cl_error_t cli_scangzip(cli_ctx *ctx)
                 inflateReset(&z);
                 break;
             } else if (inf != Z_OK && inf != Z_BUF_ERROR) {
-                at = map->len;
+                at = fmap_len(map);
                 break;
             }
         } while (z.avail_out == 0);
@@ -2150,7 +2150,7 @@ static cl_error_t cli_scanhtml(cli_ctx *ctx)
     int fd;
     fmap_t *map                = ctx->fmap;
     unsigned int viruses_found = 0;
-    uint64_t curr_len          = map->len;
+    uint64_t curr_len          = fmap_len(map);
 
     cli_dbgmsg("in cli_scanhtml()\n");
 
@@ -2183,7 +2183,7 @@ static cl_error_t cli_scanhtml(cli_ctx *ctx)
 
     if (ret == CL_CLEAN || (ret == CL_VIRUS && SCAN_ALLMATCHES)) {
         /* CL_ENGINE_MAX_HTMLNOTAGS */
-        curr_len = map->len;
+        curr_len = fmap_len(map);
         if (curr_len > ctx->engine->maxhtmlnotags) {
             /* we're not interested in scanning large files in notags form */
             /* TODO: don't even create notags if file is over limit */
@@ -2261,7 +2261,7 @@ static cl_error_t cli_scanscript(cli_ctx *ctx)
         return CL_ENULLARG;
 
     map       = ctx->fmap;
-    curr_len  = map->len;
+    curr_len  = fmap_len(map);
     groot     = ctx->engine->root[0];
     troot     = ctx->engine->root[7];
     maxpatlen = troot ? troot->maxpatlen : 0;
@@ -2313,7 +2313,7 @@ static cl_error_t cli_scanscript(cli_ctx *ctx)
     /* If there's a relative offset in troot or triggered bytecodes, normalize to file.*/
     if (troot && (troot->ac_reloff_num > 0 || troot->linked_bcs)) {
         size_t map_off = 0;
-        while (map_off < map->len) {
+        while (map_off < fmap_len(map)) {
             size_t written;
             if (!(written = text_normalize_map(&state, map, map_off)))
                 break;
@@ -2361,7 +2361,7 @@ static cl_error_t cli_scanscript(cli_ctx *ctx)
         }
 
         while (1) {
-            size_t len = MIN(map->pgsz, map->len - at);
+            size_t len = MIN(fmap_pgsz(map), fmap_len(map) - at);
             buff       = fmap_need_off_once(map, at, len);
             at += len;
             if (!buff || !len || state.out_pos + len > state.out_len) {
@@ -2465,8 +2465,8 @@ static cl_error_t cli_scanhtml_utf16(cli_ctx *ctx)
 
     cli_dbgmsg("cli_scanhtml_utf16: using tempfile %s\n", tempname);
 
-    while (at < ctx->fmap->len) {
-        bytes = MIN(ctx->fmap->len - at, ctx->fmap->pgsz * 16);
+    while (at < fmap_len(ctx->fmap)) {
+        bytes = MIN(fmap_len(ctx->fmap) - at, fmap_pgsz(ctx->fmap) * 16);
         if (!(buff = fmap_need_off_once(ctx->fmap, at, bytes))) {
             status = CL_EREAD;
             goto done;
@@ -3117,9 +3117,9 @@ static cl_error_t cli_scanembpe(cli_ctx *ctx, off_t offset)
         return CL_ECREAT;
     }
 
-    todo = map->len - offset;
+    todo = fmap_len(map) - offset;
     while (1) {
-        bytes = MIN(todo, map->pgsz);
+        bytes = MIN(todo, fmap_pgsz(map));
         if (!bytes)
             break;
 
@@ -3616,7 +3616,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
 
                                 /// TODO: This is extremely expensive because it has to hash the fpt->offset -> len!
                                 /// We need to find a way to not hash every time!!!!
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3639,7 +3639,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_EGGSFX:
                             if (type != CL_TYPE_EGG && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_EGG)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3662,7 +3662,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_ZIPSFX:
                             if (type != CL_TYPE_ZIP && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_ZIP)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3685,7 +3685,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_CABSFX:
                             if (type != CL_TYPE_MSCAB && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_CAB)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3708,7 +3708,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_ARJSFX:
                             if (type != CL_TYPE_ARJ && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_ARJ)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3731,7 +3731,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_7ZSFX:
                             if (type != CL_TYPE_7Z && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_7Z)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3754,7 +3754,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_NULSFT:
                             if (SCAN_PARSE_ARCHIVE && type == CL_TYPE_MSEXE && (DCONF_ARCH & ARCH_CONF_NSIS) && fpt->offset > 4) {
                                 // Note: CL_TYPE_NULSFT is special, because the file actually starts 4 bytes before the start of the signature match
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset - 4, ctx->fmap->len - (fpt->offset - 4), NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset - 4, fmap_len(ctx->fmap) - (fpt->offset - 4), NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3777,7 +3777,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_AUTOIT:
                             if (SCAN_PARSE_ARCHIVE && type == CL_TYPE_MSEXE && (DCONF_ARCH & ARCH_CONF_AUTOIT)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3800,7 +3800,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_ISHIELD_MSI:
                             if (SCAN_PARSE_ARCHIVE && type == CL_TYPE_MSEXE && (DCONF_ARCH & ARCH_CONF_ISHIELD)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3823,7 +3823,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_PDF:
                             if (type != CL_TYPE_PDF && SCAN_PARSE_PDF && (DCONF_DOC & DOC_CONF_PDF)) {
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -3846,12 +3846,12 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         case CL_TYPE_MSEXE:
                             if (SCAN_PARSE_PE && (type == CL_TYPE_MSEXE || type == CL_TYPE_ZIP || type == CL_TYPE_MSOLE2) && ctx->dconf->pe) {
 
-                                if ((uint64_t)(ctx->fmap->len - fpt->offset) > ctx->engine->maxembeddedpe) {
+                                if ((uint64_t)(fmap_len(ctx->fmap) - fpt->offset) > ctx->engine->maxembeddedpe) {
                                     cli_dbgmsg("scanraw: MaxEmbeddedPE exceeded\n");
                                     break;
                                 }
 
-                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, ctx->fmap->len - fpt->offset, NULL);
+                                new_map = fmap_duplicate(ctx->fmap, fpt->offset, fmap_len(ctx->fmap) - fpt->offset, NULL);
                                 if (NULL == new_map) {
                                     ret = nret = CL_EMEM;
                                     cli_dbgmsg("scanraw: Failed to duplicate fmap to scan embedded file.\n");
@@ -4012,7 +4012,7 @@ void emax_reached(cli_ctx *ctx)
         fmap_t *map = ctx->recursion_stack[stack_index].fmap;
 
         if (NULL != map) {
-            map->dont_cache_flag = 1;
+            fmap_set_dont_cache_flag(map, 1);
         }
 
         stack_index -= 1;
@@ -4091,13 +4091,13 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         goto early_ret;
     }
 
-    if (ctx->fmap->len <= 5) {
-        cli_dbgmsg("cli_magic_scandesc: File is too too small (%zu bytes), ignoring.\n", ctx->fmap->len);
+    if (fmap_len(ctx->fmap) <= 5) {
+        cli_dbgmsg("cli_magic_scandesc: File is too too small (%zu bytes), ignoring.\n", fmap_len(ctx->fmap));
         ret = CL_CLEAN;
         goto early_ret;
     }
 
-    if (cli_updatelimits(ctx, ctx->fmap->len) != CL_CLEAN) {
+    if (cli_updatelimits(ctx, fmap_len(ctx->fmap)) != CL_CLEAN) {
         emax_reached(ctx);
         ret = CL_CLEAN;
         cli_dbgmsg("cli_magic_scan: returning %d %s (no post, no cache)\n", ret, __AT__);
@@ -4109,8 +4109,8 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         /*
          * Keep-temp enabled, so create a sub-directory to provide extraction directory recursion.
          */
-        if ((NULL != ctx->fmap->name) &&
-            (CL_SUCCESS == cli_basename(ctx->fmap->name, strlen(ctx->fmap->name), &fmap_basename))) {
+        if ((NULL != fmap_name(ctx->fmap)) &&
+            (CL_SUCCESS == cli_basename(fmap_name(ctx->fmap), strlen(fmap_name(ctx->fmap)), &fmap_basename))) {
             /*
              * The fmap has a name, lets include it in the new sub-directory.
              */
@@ -4216,8 +4216,8 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
             json_object_array_add(arrobj, ctx->wrkproperty);
         }
 
-        if (ctx->fmap->name) {
-            ret = cli_jsonstr(ctx->wrkproperty, "FileName", ctx->fmap->name);
+        if (fmap_name(ctx->fmap)) {
+            ret = cli_jsonstr(ctx->wrkproperty, "FileName", fmap_name(ctx->fmap));
             if (ret != CL_SUCCESS) {
                 cli_dbgmsg("cli_magic_scan: returning %d %s (no post, no cache)\n", ret, __AT__);
                 goto early_ret;
@@ -4235,7 +4235,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
             cli_dbgmsg("cli_magic_scan: returning %d %s (no post, no cache)\n", ret, __AT__);
             goto early_ret;
         }
-        ret = cli_jsonint(ctx->wrkproperty, "FileSize", ctx->fmap->len);
+        ret = cli_jsonint(ctx->wrkproperty, "FileSize", fmap_len(ctx->fmap));
         if (ret != CL_SUCCESS) {
             cli_dbgmsg("cli_magic_scan: returning %d %s (no post, no cache)\n", ret, __AT__);
             goto early_ret;
@@ -4260,7 +4260,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         cli_dbgmsg("cli_magic_scan: Failed to get a hash for the current fmap.\n");
         goto done;
     }
-    hashed_size = ctx->fmap->len;
+    hashed_size = fmap_len(ctx->fmap);
 
     /*
      * Check if we've already scanned this file before.
@@ -4682,7 +4682,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
     /* Disable type recognition for the raw scan for zip files larger than maxziptypercg */
     if (type == CL_TYPE_ZIP && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_ZIP)) {
         /* CL_ENGINE_MAX_ZIPTYPERCG */
-        uint64_t curr_len = ctx->fmap->len;
+        uint64_t curr_len = fmap_len(ctx->fmap);
         if (curr_len > ctx->engine->maxziptypercg) {
             cli_dbgmsg("cli_magic_scan_desc: Not checking for embedded PEs (zip file > MaxZipTypeRcg)\n");
             typercg = 0;
@@ -4882,7 +4882,7 @@ done:
         perf_stop(ctx, PERFT_POSTCB);
     }
 
-    if (cb_retcode == CL_CLEAN && cache_clean && !ctx->fmap->dont_cache_flag && !SCAN_COLLECT_METADATA) {
+    if (cb_retcode == CL_CLEAN && cache_clean && !fmap_dont_cache_flag(ctx->fmap) && !SCAN_COLLECT_METADATA) {
         perf_start(ctx, PERFT_CACHE);
         cache_add(hash, hashed_size, ctx);
         perf_stop(ctx, PERFT_CACHE);
@@ -5005,20 +5005,20 @@ static cl_error_t magic_scan_nested_fmap_type(cl_fmap_t *map, size_t offset, siz
     fmap_t *new_map   = NULL;
 
     cli_dbgmsg("magic_scan_nested_fmap_type: [0, +%zu), [%zu, +%zu)\n",
-               map->len, offset, length);
+               fmap_len(map), offset, length);
 
-    if (offset >= map->len) {
+    if (offset >= fmap_len(map)) {
         cli_dbgmsg("magic_scan_nested_fmap_type: Invalid offset: %zu\n", offset);
         goto done;
     }
 
     if (!length)
-        length = map->len - offset;
+        length = fmap_len(map) - offset;
 
-    if (length > map->len - offset) {
+    if (length > fmap_len(map) - offset) {
         cli_dbgmsg("magic_scan_nested_fmap_type: Data truncated: %zu -> %zu\n",
-                   length, map->len - offset);
-        length = map->len - offset;
+                   length, fmap_len(map) - offset);
+        length = fmap_len(map) - offset;
     }
 
     if (length <= 5) {
@@ -5056,7 +5056,7 @@ cl_error_t cli_magic_scan_nested_fmap_type(cl_fmap_t *map, size_t offset, size_t
     cl_error_t ret = CL_CLEAN;
 
     cli_dbgmsg("cli_magic_scan_nested_fmap_type: [%zu, +%zu)\n", offset, length);
-    if (offset >= map->len) {
+    if (offset >= fmap_len(map)) {
         cli_dbgmsg("Invalid offset: %zu\n", offset);
         return CL_CLEAN;
     }
@@ -5075,18 +5075,18 @@ cl_error_t cli_magic_scan_nested_fmap_type(cl_fmap_t *map, size_t offset, size_t
         /* Then check length */
         if (!length) {
             /* Caller didn't specify len, use rest of the map */
-            length = map->len - offset;
+            length = fmap_len(map) - offset;
         }
-        if (length > map->len - offset) {
-            cli_dbgmsg("cli_magic_scan_nested_fmap_type: Data truncated: %zu -> %zu\n", length, map->len - offset);
-            length = map->len - offset;
+        if (length > fmap_len(map) - offset) {
+            cli_dbgmsg("cli_magic_scan_nested_fmap_type: Data truncated: %zu -> %zu\n", length, fmap_len(map) - offset);
+            length = fmap_len(map) - offset;
         }
         if (length <= 5) {
             cli_dbgmsg("cli_magic_scan_nested_fmap_type: Small data (%u bytes)\n", (unsigned int)length);
             return CL_CLEAN;
         }
-        if (!CLI_ISCONTAINED_0_TO(map->len, offset, length)) {
-            cli_dbgmsg("cli_magic_scan_nested_fmap_type: map error occurred [%zu, %zu] not within [0, %zu]\n", offset, length, map->len);
+        if (!CLI_ISCONTAINED_0_TO(fmap_len(map), offset, length)) {
+            cli_dbgmsg("cli_magic_scan_nested_fmap_type: map error occurred [%zu, %zu] not within [0, %zu]\n", offset, length, fmap_len(map));
             return CL_CLEAN;
         }
 
@@ -5204,7 +5204,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
     // ctx was memset, so recursion_level starts at 0.
     ctx.recursion_stack[ctx.recursion_level].fmap = map;
     ctx.recursion_stack[ctx.recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-    ctx.recursion_stack[ctx.recursion_level].size = map->len;
+    ctx.recursion_stack[ctx.recursion_level].size = fmap_len(map);
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 
@@ -5299,7 +5299,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
      * integer type safety has come a long way since 2014, so it's possible
      * we could lift this restriction, but at least one of the parsers is
      * bound to behave badly with large files. */
-    if (map->len > INT_MAX - 2) {
+    if (fmap_len(map) > INT_MAX - 2) {
         if (scanoptions->heuristic & CL_SCAN_HEURISTIC_EXCEEDS_MAX) {
             status = cli_append_virus(&ctx, "Heuristics.Limits.Exceeded.MaxFileSize");
         } else {
@@ -5499,8 +5499,8 @@ done:
 
 cl_error_t cl_scanmap_callback(cl_fmap_t *map, const char *filename, const char **virname, unsigned long int *scanned, const struct cl_engine *engine, struct cl_scan_options *scanoptions, void *context)
 {
-    if (map->len > engine->maxfilesize) {
-        cli_dbgmsg("cl_scandesc_callback: File too large (%zu bytes), ignoring\n", map->len);
+    if (fmap_len(map) > engine->maxfilesize) {
+        cli_dbgmsg("cl_scandesc_callback: File too large (%zu bytes), ignoring\n", fmap_len(map));
         if (scanoptions->heuristic & CL_SCAN_HEURISTIC_EXCEEDS_MAX) {
             if (engine->cb_virus_found)
                 engine->cb_virus_found(fmap_fd(map), "Heuristics.Limits.Exceeded.MaxFileSize", context);
