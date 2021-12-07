@@ -12,6 +12,31 @@
 #include "libclamav/others.h"
 
 
+extern int cli_getpagesize(void);
+
+extern uint64_t fmap_align_items(uint64_t sz, uint64_t al);
+
+extern void unmap_malloc(fmap_t *m);
+
+extern const void *mem_need(fmap_t *m, uint64_t at, uint64_t len_hint, int32_t lock);
+
+extern const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint);
+
+extern const void *mem_gets(fmap_t *m, char *dst, size_t *at, size_t max_len);
+
+extern void mem_unneed_off(fmap_t *m, size_t at, size_t len);
+
+extern char *cli_strdup(const char *s);
+
+/**
+ * Used only by test functions
+ */
+fmap_t *fmap_zeroed(void);
+
+void funmap(fmap_t *map);
+
+fmap_t *fmap_open_memory(const void *start, size_t len, const char *name);
+
 bool clrs_log_init(void);
 
 #endif /* __CLAMAV_RUST_H */

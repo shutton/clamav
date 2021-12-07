@@ -87,7 +87,7 @@ pthread_mutex_t fmap_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define fmap_bitmap (m->bitmap)
 
-static inline uint64_t fmap_align_items(uint64_t sz, uint64_t al);
+/* static */ inline uint64_t fmap_align_items(uint64_t sz, uint64_t al);
 static inline uint64_t fmap_align_to(uint64_t sz, uint64_t al);
 static inline uint64_t fmap_which_page(fmap_t *m, size_t at);
 
@@ -97,7 +97,7 @@ static const void *handle_need_offstr(fmap_t *m, size_t at, size_t len_hint);
 static const void *handle_gets(fmap_t *m, char *dst, size_t *at, size_t max_len);
 
 static void unmap_mmap(fmap_t *m);
-static void unmap_malloc(fmap_t *m);
+/* static */ void unmap_malloc(fmap_t *m);
 
 #ifndef _WIN32
 /* pread proto here in order to avoid the use of XOPEN and BSD_SOURCE
@@ -728,7 +728,7 @@ static void unmap_mmap(fmap_t *m)
 #endif
 }
 
-static void unmap_malloc(fmap_t *m)
+/* static */ void unmap_malloc(fmap_t *m)
 {
     if (NULL != m) {
         if (NULL != m->name) {
@@ -832,11 +832,12 @@ static const void *handle_gets(fmap_t *m, char *dst, size_t *at, size_t max_len)
 
 /* vvvvv MEMORY STUFF BELOW vvvvv */
 
-static const void *mem_need(fmap_t *m, size_t at, size_t len, int lock);
-static void mem_unneed_off(fmap_t *m, size_t at, size_t len);
-static const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint);
-static const void *mem_gets(fmap_t *m, char *dst, size_t *at, size_t max_len);
+/* static */ const void *mem_need(fmap_t *m, size_t at, size_t len, int lock);
+/* static */ void mem_unneed_off(fmap_t *m, size_t at, size_t len);
+/* static */ const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint);
+/* static */ const void *mem_gets(fmap_t *m, char *dst, size_t *at, size_t max_len);
 
+#ifdef RUST_REWRITE
 fmap_t *fmap_open_memory(const void *start, size_t len, const char *name)
 {
     cl_error_t status = CL_ERROR;
@@ -882,13 +883,14 @@ done:
 
     return m;
 }
+#endif
 
 extern cl_fmap_t *cl_fmap_open_memory(const void *start, size_t len)
 {
     return (cl_fmap_t *)fmap_open_memory(start, len, NULL);
 }
 
-static const void *mem_need(fmap_t *m, size_t at, size_t len, int lock)
+/* static */ const void *mem_need(fmap_t *m, size_t at, size_t len, int lock)
 {
     UNUSEDPARAM(lock);
     if (!len) {
@@ -902,14 +904,14 @@ static const void *mem_need(fmap_t *m, size_t at, size_t len, int lock)
     return (void *)((char *)m->data + at);
 }
 
-static void mem_unneed_off(fmap_t *m, size_t at, size_t len)
+/* static */ void mem_unneed_off(fmap_t *m, size_t at, size_t len)
 {
     UNUSEDPARAM(m);
     UNUSEDPARAM(at);
     UNUSEDPARAM(len);
 }
 
-static const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint)
+/* static */ const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint)
 {
     char *ptr;
 
@@ -927,7 +929,7 @@ static const void *mem_need_offstr(fmap_t *m, size_t at, size_t len_hint)
     return NULL;
 }
 
-static const void *mem_gets(fmap_t *m, char *dst, size_t *at, size_t max_len)
+/* static */ const void *mem_gets(fmap_t *m, char *dst, size_t *at, size_t max_len)
 {
     char *src    = (char *)m->data + m->nested_offset + *at;
     char *endptr = NULL;
@@ -955,7 +957,7 @@ fmap_t *fmap(int fd, off_t offset, size_t len, const char *name)
     return fmap_check_empty(fd, offset, len, &unused, name);
 }
 
-static inline uint64_t fmap_align_items(uint64_t sz, uint64_t al)
+/* static */ inline uint64_t fmap_align_items(uint64_t sz, uint64_t al)
 {
     return sz / al + (sz % al != 0);
 }
@@ -1139,6 +1141,7 @@ done:
     return status;
 }
 
+/*
 fmap_t *fmap_zeroed()
 {
     fmap_t *map = calloc(1, sizeof(fmap_t));
@@ -1149,6 +1152,7 @@ inline void funmap(fmap_t *m)
 {
     m->unmap(m);
 }
+*/
 
 inline const void *fmap_need_off(fmap_t *m, size_t at, size_t len)
 {

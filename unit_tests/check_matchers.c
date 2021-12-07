@@ -189,6 +189,7 @@ static void setup(void)
 #endif
 
     ctx.engine->root[0] = root;
+    free(thefmap);
 }
 
 static void teardown(void)

@@ -20,4 +20,5 @@
  *  MA 02110-1301, USA.
  */
 
+pub mod fmap;
 pub mod logging;

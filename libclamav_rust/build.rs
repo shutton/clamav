@@ -48,6 +48,25 @@ fn main() {
             }
         }
     }
+
+    do_bindgen();
+}
+
+fn do_bindgen() {
+    println!("cargo:rerun-if-changed=../libclamav/fmap-internal.h");
+
+    eprintln!("{:?}", std::env::var("CFLAGS"));
+    let bindings = bindgen::Builder::default()
+        .header("../libclamav/fmap-internal.h")
+        .clang_arg("-I/usr/local/opt/openssl/include")
+        .clang_arg("-I../libclamav")
+        .clang_arg("-I../build")
+        .generate()
+        .expect("generate bindings");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("fmap_internal.rs"))
+        .expect("Couldn't write bindings!");
 }
 
 //

@@ -49,6 +49,7 @@ if(ENABLE_APP)
         PRIVATE
             libcheck::check
             ClamAV::libclamav
+            ClamAV::libclamav_rust
             regex
             lzma_sdk
             yara

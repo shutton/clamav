@@ -15,6 +15,7 @@
 #include <stdbool.h>
 
 #include "clamav.h"
+#include "fmap.h"
 
 struct cl_fmap {
     /* handle interface */
